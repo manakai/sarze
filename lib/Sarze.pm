@@ -16,10 +16,12 @@ sub log ($$) {
       $_[0]->{id}, $_[1], scalar gmtime time if $_[0]->{debug};
 } # log
 
+my $NewAEF = !!eval q{ use AnyEvent::Fork 1.32 };
+
 sub _init_forker ($$) {
   my ($self, $args) = @_;
   $self->{forker} = AnyEvent::Fork->new;
-  $self->{forker}->eval (q{
+  $self->{forker}->eval ($NewAEF ? q{ use AnyEvent } : q{
     use AnyEvent;
     $SIG{CHLD} = 'IGNORE';
   })->require ('Sarze::Worker');
@@ -387,7 +389,7 @@ sub DESTROY ($) {
 
 =head1 LICENSE
 
-Copyright 2016-2021 Wakaba <wakaba@suikawiki.org>.
+Copyright 2016-2022 Wakaba <wakaba@suikawiki.org>.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
