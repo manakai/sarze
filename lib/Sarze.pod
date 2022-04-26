@@ -349,7 +349,7 @@ application exits and Sarze's graceful termination process is aborted.
 
 =head1 DEPENDENCY
 
-The C<Sarze> module requires Perl 5.10 or later.
+The C<Sarze> module requires Perl 5.12 or later.
 
 It requires modules L<AnyEvnet::Socket> and L<AnyEvent::Fork>.
 
@@ -362,10 +362,11 @@ L<Promise>, L<AbortController>, and L<AbortSignal>),
 <https://github.com/manakai/perl-web-resource>, and
 <https://github.com/manakai/perl-web-url>.
 
-=head1 AVAILABILITY
+=head1 HISTORY
 
 This module is available as a Git repository at
-<https://github.com/wakaba/sarze>.
+<https://github.com/manakai/sarze>.  It was transferred to the manakai
+project from <https://github.com/wakaba/sarze> on 26 April 2022.
 
 =head1 AUTHOR
 
@@ -373,7 +374,7 @@ Wakaba <wakaba@suikawiki.org>.
 
 =head1 LICENSE
 
-Copyright 2016-2021 Wakaba <wakaba@suikawiki.org>.
+Copyright 2016-2022 Wakaba <wakaba@suikawiki.org>.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
