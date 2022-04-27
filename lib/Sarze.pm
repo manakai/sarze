@@ -16,7 +16,7 @@ sub log ($$) {
       $_[0]->{id}, $_[1], scalar gmtime time if $_[0]->{debug};
 } # log
 
-my $NewAEF = !!eval q{ use AnyEvent::Fork 1.32 };
+my $NewAEF = !!eval q{ use AnyEvent::Fork 1.32; 1 };
 
 sub _init_forker ($$) {
   my ($self, $args) = @_;
