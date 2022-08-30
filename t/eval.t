@@ -70,7 +70,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{\Qat Sarze eval (@{[__FILE__]} line @{[__LINE__+9]}) line \E}, $error;
+      like $error, qr{\Qat Sarze eval (@{[__FILE__]} line @{[__LINE__+11]}) line \E}, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);
@@ -79,6 +79,8 @@ test {
     test {
       ok $res->is_network_error;
     } $c;
+  })->finally (sub {
+    return $client1->close;
   });
 } n => 2, name => 'a broken eval (syntax error)';
 
