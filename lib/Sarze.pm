@@ -365,6 +365,9 @@ sub start ($%) {
     }
     $self->_create_workers_if_necessary;
     return $self;
+  })->catch (sub {
+    my $e = $_[0];
+    return $self->{completed}->finally (sub { die $e });
   });
 } # start
 
