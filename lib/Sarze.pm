@@ -78,12 +78,12 @@ sub _init_forker ($$) {
     my $cls = $args->{worker_state_class} // $args->{worker_background_class};
     $self->{forker}->eval (sprintf q{
       unless ("%s"->can ('start')) {
-        $Sarze::Worker::LoadError = "%s->start is not defined";
+        $Sarze::Worker::LoadError ||= "%s->start is not defined";
       }
     }, quotemeta $cls, quotemeta $cls);
     $self->{forker}->eval (sprintf q{
       unless ("%s"->can ('custom')) {
-        $Sarze::Worker::LoadError = "%s->custom is not defined";
+        $Sarze::Worker::LoadError ||= "%s->custom is not defined";
       }
     }, quotemeta $cls, quotemeta $cls)
         if $self->{max}->{custom};
