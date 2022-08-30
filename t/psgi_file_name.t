@@ -106,7 +106,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{psgi_file_name-2.psgi: };
+      like $error, qr{psgi_file_name-2.psgi: .+psgi_file_name-2.psgi line}, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);
@@ -136,6 +136,87 @@ test {
     hostports => [
       [$host, $port1],
     ],
+    psgi_file_name => $TestDataPath->child ('psgi_file_name-2.psgi'),
+    worker_state_class => 'Bad::Class',
+  )->then (sub {
+    $server = $_[0];
+    test {
+      ok 0;
+    } $c;
+  }, sub {
+    my $error = $_[0];
+    test {
+      like $error, qr{psgi_file_name-2.psgi: .+psgi_file_name-2.psgi line}, $error;
+    } $c;
+  })->then (sub {
+    return $client1->request (path => []);
+  })->then (sub {
+    my $res = $_[0];
+    test {
+      ok $res->is_network_error;
+    } $c;
+  });
+} n => 2, name => 'broken psgi file with worker, 1';
+
+test {
+  my $c = shift;
+  my $host = '127.0.0.1';
+  my $port1 = find_listenable_port;
+
+  my $url1 = Web::URL->parse_string (qq<http://$host:$port1>);
+  my $client1 = Web::Transport::ConnectionClient->new_from_url ($url1);
+
+  my $server;
+  promised_cleanup {
+    return Promise->all ([
+      (defined $server ? $server->stop : undef),
+      $client1->close,
+    ])->then (sub { done $c; undef $c });
+  } Sarze->start (
+    hostports => [
+      [$host, $port1],
+    ],
+    psgi_file_name => $TestDataPath->child ('psgi_file_name-6.psgi'),
+    worker_state_class => 'Class::With::Start',
+    max_counts => {custom => 1},
+  )->then (sub {
+    $server = $_[0];
+    test {
+      ok 0;
+    } $c;
+  }, sub {
+    my $error = $_[0];
+    test {
+      like $error, qr{psgi_file_name-6.psgi: die6!.+psgi_file_name-6.psgi line}, $error;
+    } $c;
+  })->then (sub {
+    return $client1->request (path => []);
+  })->then (sub {
+    my $res = $_[0];
+    test {
+      ok $res->is_network_error;
+    } $c;
+  });
+} n => 2, name => 'broken psgi file with worker, 2';
+
+test {
+  my $c = shift;
+  my $host = '127.0.0.1';
+  my $port1 = find_listenable_port;
+
+  my $url1 = Web::URL->parse_string (qq<http://$host:$port1>);
+  my $client1 = Web::Transport::ConnectionClient->new_from_url ($url1);
+
+  my $server;
+  promised_cleanup {
+    return Promise->all ([
+      (defined $server ? $server->stop : undef),
+      $client1->close,
+    ])->then (sub { done $c; undef $c });
+  } Sarze->start (
+    hostports => [
+      [$host, $port1],
+    ],
     psgi_file_name => $TestDataPath->child ('psgi_file_name-3.psgi'),
   )->then (sub {
     $server = $_[0];
@@ -145,7 +226,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{psgi_file_name-3.psgi: \x{4e00}\x{10000}};
+      like $error, qr{psgi_file_name-3.psgi: \x{4e00}\x{10000}}, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);
@@ -161,7 +242,7 @@ run_tests;
 
 =head1 LICENSE
 
-Copyright 2016-2017 Wakaba <wakaba@suikawiki.org>.
+Copyright 2016-2022 Wakaba <wakaba@suikawiki.org>.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
