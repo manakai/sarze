@@ -33,7 +33,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{psgi_file_name-4.psgi.*does not return a CODE};
+      like $error, qr{CODE is not returned.+psgi_file_name-4.psgi}, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);
@@ -72,7 +72,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{psgi_file_name-5.psgi.*does not return a CODE};
+      like $error, qr{CODE is not returned.+psgi_file_name-5.psgi}, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);
@@ -88,7 +88,7 @@ run_tests;
 
 =head1 LICENSE
 
-Copyright 2016-2017 Wakaba <wakaba@suikawiki.org>.
+Copyright 2016-2022 Wakaba <wakaba@suikawiki.org>.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
