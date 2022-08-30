@@ -106,7 +106,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{psgi_file_name-2.psgi: .+psgi_file_name-2.psgi line}, $error;
+      like $error, qr{syntax error.+psgi_file_name-2.psgi line}, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);
@@ -146,7 +146,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{psgi_file_name-2.psgi: .+psgi_file_name-2.psgi line}, $error;
+      like $error, qr{^Sarze:.+psgi_file_name-2.psgi$}s, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);
@@ -187,7 +187,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{psgi_file_name-6.psgi: die6!.+psgi_file_name-6.psgi line}, $error;
+      like $error, qr{die6!.+psgi_file_name-6.psgi line}, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);
@@ -226,7 +226,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{psgi_file_name-3.psgi: \x{4e00}\x{10000}}, $error;
+      like $error, qr{\x{4e00}\x{10000}.+psgi_file_name-3.psgi}, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);

@@ -263,7 +263,7 @@ test {
   }, sub {
     my $e = $_[0];
     test {
-      like $e, qr{^Fatal error: \d+: Worker->custom is not defined at};
+      like $e, qr{^Sarze: \d+: Failed to initiate a worker: Worker->custom is not defined at Sarze eval \([^()]+\)$}, $e;
     } $c;
   })->finally (sub {
     done $c; undef $c;
@@ -274,7 +274,7 @@ run_tests;
 
 =head1 LICENSE
 
-Copyright 2016-2021 Wakaba <wakaba@suikawiki.org>.
+Copyright 2016-2022 Wakaba <wakaba@suikawiki.org>.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

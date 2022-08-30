@@ -39,33 +39,36 @@ sub _init_forker ($$) {
     $self->{forker}->eval (sprintf q{
       eval "%s";
       if ($@) {
-        $Sarze::Worker::LoadError = "$@";
+        $Sarze::Worker::LoadError = "eval_error|$@";
       } elsif (not defined &main::psgi_app) {
-        $Sarze::Worker::LoadError = "%s does not define &main::psgi_app";
+        $Sarze::Worker::LoadError = "not_defined|main::psgi_app";
       }
-    }, quotemeta ($line.$args->{eval}), quotemeta sprintf "Sarze eval (%s line %d)", $c->{file}, $c->{line});
+    }, quotemeta ($line.$args->{eval}));
+    $self->{_error_location} = {eval => 1, file => $c->{file}, line => $c->{line}};
   } elsif (defined $args->{psgi_file_name}) {
     require Cwd;
-    my $name = quotemeta Cwd::abs_path ($args->{psgi_file_name});
+    my $file_name = Cwd::abs_path ($args->{psgi_file_name});
+    my $name = quotemeta $file_name;
     $self->{forker}->eval (q<
       my $name = ">.$name.q<";
       my $code = do $name;
       if ($@) {
-        $Sarze::Worker::LoadError = "$name: $@";
+        $Sarze::Worker::LoadError = "eval_error|$@";
       } elsif (defined $code) {
         if (ref $code eq 'CODE') {
           *main::psgi_app = $code;
         } else {
-          $Sarze::Worker::LoadError = "|$name| does not return a CODE";
+          $Sarze::Worker::LoadError = "no_return_code|";
         }
       } else {
         if ($!) {
-          $Sarze::Worker::LoadError = "$name: $!";
+          $Sarze::Worker::LoadError = "load_error|$!";
         } else {
-          $Sarze::Worker::LoadError = "|$name| does not return a CODE";
+          $Sarze::Worker::LoadError = "no_return_code|";
         }
       }
     >);
+    $self->{_error_location} = {file => $file_name};
   } else {
     $self->{shutdown}->();
     $self->log ("Terminated by option error");
@@ -78,12 +81,12 @@ sub _init_forker ($$) {
     my $cls = $args->{worker_state_class} // $args->{worker_background_class};
     $self->{forker}->eval (sprintf q{
       unless ("%s"->can ('start')) {
-        $Sarze::Worker::LoadError ||= "%s->start is not defined";
+        $Sarze::Worker::LoadError ||= "not_defined|%s->start";
       }
     }, quotemeta $cls, quotemeta $cls);
     $self->{forker}->eval (sprintf q{
       unless ("%s"->can ('custom')) {
-        $Sarze::Worker::LoadError ||= "%s->custom is not defined";
+        $Sarze::Worker::LoadError ||= "not_defined|%s->custom";
       }
     }, quotemeta $cls, quotemeta $cls)
         if $self->{max}->{custom};
@@ -142,12 +145,13 @@ sub __create_check_worker ($) {
              if ($line eq 'started') {
                $start_ok->(1);
              } elsif ($line =~ /\Aglobalfatalerror (.*)\z/s) {
-               my $error = "Fatal error: " . decode_web_utf8 $1;
+               my $error = Sarze::GlobalFatalError->parse
+                   ($self->{_error_location}, $1);
                $self->log ($error);
                $start_ng->($error);
                $self->{shutdown}->();
              } else {
-               my $error = "Broken command from worker process: |$line|";
+               my $error = Sarze::BrokenCommandError->new ($line);
                $self->log ($error);
                $start_ng->($error);
                $self->{shutdown}->();
@@ -219,7 +223,8 @@ sub _create_worker ($$$) {
              if ($line eq 'nomore') {
                $onnomore->();
              } else {
-               $self->log ("Broken command from worker process: |$line|");
+               my $error = Sarze::BrokenCommandError->new ($line);
+               $self->log ($error);
              }
            }
          },
@@ -384,6 +389,68 @@ sub DESTROY ($) {
   warn "$$: Reference to @{[ref $_[0]]} ($_[0]->{id}) is not discarded before global destruction"
       if $@ =~ /during global destruction/;
 } # DESTROY
+
+package Sarze::BrokenCommandError;
+use overload '""' => 'stringify', fallback => 1;
+
+sub new ($$) {
+  return bless {line => $_[1]}, $_[0];
+} # new
+
+sub stringify ($) {
+  return "Sarze: Broken command from worker process: |$_[0]->{line}|";
+} # stringify
+
+package Sarze::GlobalFatalError;
+use overload '""' => 'stringify', fallback => 1;
+use Web::Encoding;
+
+sub parse ($$$) {
+  my ($class, $loc, $x) = @_;
+  my $self = bless {
+    loc => $loc,
+  }, $class;
+
+  my @x = split /\|/, $x, 4;
+  $self->{pid} = $x[0];
+  $self->{type} = $x[2];
+
+  if ($x[1]) {
+    $self->{arg} = decode_web_utf8 $x[3];
+  } else {
+    $self->{arg} = $x[3];
+  }
+  $self->{arg} =~ s/\x7F\x02/\x0A/g;
+  $self->{arg} =~ s/\x7F\x01/\x7F/g;
+
+  return $self;
+} # parse
+
+sub stringify ($) {
+  my $self = $_[0];
+
+  my $msg = $self->{type};
+  if ($msg eq 'eval_error' or $msg eq 'load_error') {
+    $msg = $self->{arg};
+  } elsif ($msg eq 'not_defined') {
+    $msg = $self->{arg} . ' is not defined';
+  } elsif ($msg eq 'no_return_code') {
+    $msg = 'CODE is not returned';
+  } else {
+    $msg .= ': ' . $self->{arg};
+  }
+
+  my $loc;
+  if ($self->{loc}->{eval}) {
+    $loc = sprintf 'Sarze eval (%s line %d)',
+        $self->{loc}->{file}, $self->{loc}->{line};
+  } else {
+    $loc = $self->{loc}->{file};
+  }
+  
+  return sprintf 'Sarze: %d: Failed to initiate a worker: %s at %s',
+      $self->{pid}, $msg, $loc;
+} # stringify
 
 1;
 

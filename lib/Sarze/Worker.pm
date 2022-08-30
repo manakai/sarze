@@ -13,8 +13,13 @@ use Web::Transport::PSGIServerConnection;
 sub check {
   if ($Sarze::Worker::LoadError) {
     my $error = $Sarze::Worker::LoadError;
-    $error =~ s/\x0A/\\x0A/g;
-    print { $_[0] } encode_web_utf8 "globalfatalerror $$: $error\x0A";
+    $error =~ s/\x7F/\x7F\x01/g;
+    $error =~ s/\x0A/\x7F\x02/g;
+    if (utf8::is_utf8 $error) {
+      print { $_[0] } encode_web_utf8 "globalfatalerror $$|1|$error\x0A";
+    } else {
+      print { $_[0] } "globalfatalerror $$|0|$error\x0A";
+    }
   } else {
     print { $_[0] } "started\x0A";
   }
@@ -352,7 +357,7 @@ sub DESTROY ($) {
 
 =head1 LICENSE
 
-Copyright 2016-2021 Wakaba <wakaba@suikawiki.org>.
+Copyright 2016-2022 Wakaba <wakaba@suikawiki.org>.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

@@ -70,7 +70,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{\Qat Sarze eval (@{[__FILE__]} line @{[__LINE__+9]}) line \E};
+      like $error, qr{\Qat Sarze eval (@{[__FILE__]} line @{[__LINE__+9]}) line \E}, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);
@@ -80,7 +80,7 @@ test {
       ok $res->is_network_error;
     } $c;
   });
-} n => 2, name => 'a broken eval';
+} n => 2, name => 'a broken eval (syntax error)';
 
 test {
   my $c = shift;
@@ -113,7 +113,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{\Qat Sarze eval (@{[__FILE__]} line @{[__LINE__+9]}) line 4\E};
+      like $error, qr{\Qat Sarze eval (@{[__FILE__]} line @{[__LINE__+9]}) line 4\E}, $error;
     } $c;
   })->then (sub {
     return $client1->request (path => []);
@@ -244,7 +244,7 @@ test {
   }, sub {
     my $error = $_[0];
     test {
-      like $error, qr{\QSarze eval (@{[__FILE__]} line @{[__LINE__+9]}) does not define &main::psgi_app\E};
+      like $error, qr{main::psgi_app is not defined at \QSarze eval (@{[__FILE__]} line @{[__LINE__+9]})\E};
     } $c;
   })->then (sub {
     return $client1->request (path => []);
