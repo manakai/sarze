@@ -1,5 +1,6 @@
 AnyEvent~7.17
 AnyEvent::Fork~1.32
+AnyEvent::Handle
 Canary::Stability~2013
 Carp~1.50
 Cwd~3.75
@@ -15,6 +16,6 @@ Proc::FastSpawn~1.2
 Scalar::Util~1.63
 Socket~2.036
 Term::ANSIColor~5.01
-Test::Builder~1.302192
+Test::More~1.302192
 Time::HiRes~1.9764
 common::sense~3.75
