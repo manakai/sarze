@@ -24,7 +24,13 @@ sub _init_forker ($$) {
   $self->{forker}->eval ($NewAEF ? q{ use AnyEvent } : q{
     use AnyEvent;
     $SIG{CHLD} = 'IGNORE';
+  })->eval (q{
+    $Sarze::Worker::OrigEnv->{PERL_ANYEVENT_IO_MODEL} = $ENV{PERL_ANYEVENT_IO_MODEL};
+    $ENV{PERL_ANYEVENT_IO_MODEL} = 'Perl';
   })->require ('Sarze::Worker');
+  ## R6.9.27: When IO::AIO is loaded (by AnyEvent::IO) and then forked,
+  ## IO::AIO in forked processes fail to run (callbacks will never invoked).
+  ## See also reverting of |PERL_ANYEVENT_IO_MODEL| below.
   if (defined $args->{eval}) {
     if (defined $args->{psgi_file_name}) {
       $self->{shutdown}->();
@@ -200,6 +206,20 @@ sub _create_worker ($$$) {
   my $worker = $self->{workers}->{$fork} = {accepting => 1, shutdown => sub {},
                                             feature_set => $feature_set};
 
+  ## See also setting of |PERL_ANYEVENT_IO_MODEL| for parent process.
+  $fork->eval (q{
+    $ENV{PERL_ANYEVENT_IO_MODEL} = $Sarze::Worker::OrigEnv->{PERL_ANYEVENT_IO_MODEL};
+    undef $AnyEvent::IO::MODEL if defined $AnyEvent::IO::MODEL;
+    delete $INC{"AnyEvent/IO/$ENV{PERL_ANYEVENT_IO_MODEL}.pm"}
+        if defined $ENV{PERL_ANYEVENT_IO_MODEL};
+    if ($INC{'AnyEvent/IO.pm'}) {
+      delete $INC{"AnyEvent/IO.pm"};
+      require AnyEvent::IO;
+    }
+  });
+  ## Note also that direct invocations of IO::AIO (without
+  ## AnyEvent::IO) is not supported well.
+  
   my $onnomore = sub {
     if ($worker->{accepting}) {
       delete $worker->{accepting};
@@ -459,7 +479,7 @@ sub stringify ($) {
 
 =head1 LICENSE
 
-Copyright 2016-2022 Wakaba <wakaba@suikawiki.org>.
+Copyright 2016-2024 Wakaba <wakaba@suikawiki.org>.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
