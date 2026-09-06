@@ -78,7 +78,7 @@ sub main {
         $wp->dont_accept_anymore;
         for (values %{$wp->{connections} or {}}) {
           $_->close_after_current_response
-              (timeout => $wp->{shutdown_timeout});
+              (timeout => $wp->{shutdown_timeout}, wait_for_first_request => 1);
         }
         delete $wp->{connections};
         delete $wp->{signals};

@@ -1,3 +1,5 @@
+=encoding utf-8
+
 =head1 NAME
 
 Sarze - An HTTP server
@@ -117,10 +119,17 @@ XXX
 
 =item seconds_per_worker => $seconds (default: 60*10)
 
-After the seconds specified by this option has elapsed, a worker is
-switched to the shutdowning mode, where no incoming request is
-accepted anymore and any running handlers are expected to be stopped
-as far as possible.
+指定した秒数を過ぎると worker は終了処理へ移り、新規接続の受付を
+停止します。処理中の要求は可能な限り完了させます。既に受け付けて
+HTTP 接続が ready になった新規接続についても、最初の1要求と
+その応答を既存の C<shutdown_timeout> 内で完了させます。このように
+最初の要求を待つ接続では、2要求目は処理しません。再利用待ちの
+接続は従来どおり閉じます。
+
+この動作には L<Web::Transport::GenericServerConnection> の
+C<wait_for_first_request> 対応版が必要です。通信ライブラリだけ、
+または Sarze だけを更新しても、この組合せの修正は完成しません。
+worker の寿命や終了期限を延長する変更ではありません。
 
 =item shutdown_timeout => $seconds (default: 60*1)
 
